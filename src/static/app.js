@@ -19,12 +19,19 @@ document.addEventListener("DOMContentLoaded", () => {
         activityCard.className = "activity-card";
 
         const spotsLeft = details.max_participants - details.participants.length;
+      const participantItems = details.participants.length
+        ? details.participants.map((email) => `<li><span>${email}</span><button class="delete-participant" data-activity="${name}" data-email="${email}" title="Remove participant">✕</button></li>`).join("")
+        : "<li>No participants yet.</li>";
 
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants">
+            <strong>Participants:</strong>
+            <ul>${participantItems}</ul>
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
@@ -62,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities(); // Refresh activities list
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
@@ -78,6 +86,33 @@ document.addEventListener("DOMContentLoaded", () => {
       messageDiv.className = "error";
       messageDiv.classList.remove("hidden");
       console.error("Error signing up:", error);
+    }
+  });
+
+  // Handle participant deletion
+  document.addEventListener("click", async (event) => {
+    if (event.target.classList.contains("delete-participant")) {
+      const activityName = event.target.dataset.activity;
+      const email = event.target.dataset.email;
+
+      try {
+        const response = await fetch(
+          `/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        if (response.ok) {
+          fetchActivities(); // Refresh activities list
+        } else {
+          const result = await response.json();
+          alert(result.detail || "Failed to unregister participant");
+        }
+      } catch (error) {
+        alert("Error removing participant");
+        console.error("Error:", error);
+      }
     }
   });
 
